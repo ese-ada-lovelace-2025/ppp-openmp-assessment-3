@@ -1,13 +1,13 @@
 # Extension: SIMD on the innermost loop
 
-Demonstrate that `#pragma omp simd` (plus alignment hints) produces measurable vectorisation gains on the innermost stencil loop.
+Demonstrate that `#pragma omp simd` produces measurable vectorisation gains on the innermost stencil loop.
 
 ## What to deliver
 
 Two variants, both in this directory:
 
 - `stencil_scalar.cpp` — stencil compiled **without** the `#pragma omp simd` annotation (rely only on autovectorisation).
-- `stencil_simd.cpp` — stencil with `#pragma omp simd aligned(u, u_next: 64) safelen(8)` on the innermost (k) loop, plus any `aligned_alloc`-style allocation required to honour the alignment assertion.
+- `stencil_simd.cpp` — stencil with `#pragma omp simd` on the innermost (k) loop.
 
 Both compile to separate binaries.
 
@@ -15,8 +15,7 @@ Both compile to separate binaries.
 
 Modern compilers (Clang 18, GCC 13) autovectorise simple stencils well without pragmas. The `simd` pragma typically helps by:
 
-- Asserting pointer alignment, enabling aligned loads/stores (→ higher throughput).
-- Asserting `safelen(N)`, giving the vectoriser permission to use wider vectors without proving independence.
+- Documenting independence: tells the compiler explicitly that the inner-loop iterations have no cross-iteration dependence, which it might not be able to prove for a more complex stencil.
 - Documenting intent (helps compilers that are conservative about aliasing).
 
 Your job is to *measure* the difference and *explain* it — a modest delta with a clear analysis (Bloom: Analyze) outscores a large unexplained one.
@@ -34,5 +33,5 @@ Your job is to *measure* the difference and *explain* it — a modest delta with
 
 ## Reading list
 
-- Day 4 slide deck — SIMD + alignment section.
-- `snippets/day4/simd_axpy.cpp` in the lectures repo — demonstrates the `aligned(...: 64) safelen(8)` idiom.
+- Day 4 slide deck — SIMD section.
+- `snippets/day4/simd_axpy.cpp` in the lectures repo — minimal `#pragma omp simd` example.
