@@ -1,6 +1,6 @@
 # Assignment 3 — 3D Jacobi stencil (core + extension)
 
-This is the **starter repo** for Assignment 3 of the PPP-OpenMP assessment. **Target: 40 marks** (out of 100 across A1+A2+A3) — 25 core + 15 extension.
+This is the **starter repo** for Assignment 3 of the PPP-OpenMP assessment. **Target: 40 marks** out of 100, split as 25 core + 15 extension (A1=20, A2=30, A3=40, plus a cohort-wide 10-pt hygiene bucket).
 
 A 7-point 3D Jacobi stencil, split into a **core** implementation (25 pts) and a **chosen extension** (15 pts).
 
@@ -75,6 +75,10 @@ A3 is **memory-bound** (OI ≈ 0.14 FLOPs/byte). The grader compares your achiev
 - NUMA first-touch: full marks if `delta_percent ≥ 15`; half marks if `≥ 5`; attempt credit otherwise.
 - False sharing: same thresholds.
 - SIMD: full marks if `before/after ≥ 1.2×`; half marks if `≥ 1.05×`.
+
+## Hygiene (10 pts, cohort-wide)
+
+A separate **10-pt Hygiene bucket** — build cleanliness, lint compliance (clang-format / clang-tidy / cppcheck), README / English readability — is graded once across A1+A2+A3 on your final state. Hygiene in *this* repo contributes. See `assessment/rubric.md` in the lectures repo for the breakdown.
 
 ## EXTENSION.md header
 
