@@ -19,7 +19,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <omp.h>
-#include <vector>
+#include <utility>
 
 inline std::size_t idx(std::size_t i, std::size_t j, std::size_t k)
 {
@@ -70,17 +70,34 @@ static void init(double* u)
 
 int main()
 {
-    std::vector<double> a(NX * NY * NZ);
-    std::vector<double> b(NX * NY * NZ);
+    // posix_memalign returns *uninitialised* memory aligned to 64 bytes
+    // (cache line; covers AVX2's 32-byte vector loads). The first write
+    // is the first touch — `init()` below is parallel, so pages distribute
+    // across the team's NUMA domains. Using `std::vector<double>(N)` here
+    // would value-initialise on the master thread and pre-empt our first
+    // touch — see day-4 deck "First-touch — the std::vector trap".
+    const std::size_t bytes = NX * NY * NZ * sizeof(double);
+    void* a_raw = nullptr;
+    void* b_raw = nullptr;
+    if (posix_memalign(&a_raw, 64, bytes) != 0 ||
+        posix_memalign(&b_raw, 64, bytes) != 0) {
+        std::fprintf(stderr, "posix_memalign failed\n");
+        return 1;
+    }
+    auto* a = static_cast<double*>(a_raw);
+    auto* b = static_cast<double*>(b_raw);
 
-    init(a.data());
-    std::memcpy(b.data(), a.data(), NX * NY * NZ * sizeof(double));
+    init(a);                              // parallel first-touch init.
+    std::memcpy(b, a, bytes);
 
     for (int s = 0; s < NSTEPS; ++s) {
-        jacobi_step(a.data(), b.data());
+        jacobi_step(a, b);
         std::swap(a, b);
     }
     // Deterministic output — correctness channel only. Timing via hyperfine.
-    std::printf("checksum = %.6e\n", checksum(a.data()));
+    std::printf("checksum = %.6e\n", checksum(a));
+
+    std::free(a);
+    std::free(b);
     return 0;
 }

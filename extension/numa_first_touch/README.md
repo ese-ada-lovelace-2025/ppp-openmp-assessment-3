@@ -11,11 +11,28 @@ Two variants, both in this directory:
 
 Both compile to separate binaries. CI runs both at 128 threads on Rome, computes `delta_percent = (naive_time - ft_time) / naive_time × 100`, and expects a substantial positive delta (≥ 15% for full marks, ≥ 5% for half).
 
+## Precondition: use `posix_memalign`, NOT `std::vector`
+
+`std::vector<double>(N)` value-initialises every element at construction time — i.e. the constructing thread (master) writes zeros across the entire array, and that counts as the first touch. Pages are pinned to the master's NUMA domain before any parallel-init loop ever runs. **You will not see a delta if both variants use `std::vector`** — both are then effectively master-init.
+
+Allocate uninitialised, aligned memory in both variants:
+
+```cpp
+const std::size_t bytes = NX * NY * NZ * sizeof(double);
+void* a_raw = nullptr;
+posix_memalign(&a_raw, 64, bytes);          // 64 = cache-line / SIMD alignment
+auto* a = static_cast<double*>(a_raw);
+// ... use a ...
+std::free(a);
+```
+
+The `core/stencil.cpp` starter already uses this pattern; copy from there.
+
 ## Implementation hints
 
-1. Copy `../core/stencil.cpp` (relative to this directory) as a starting point for both variants.
+1. Copy `../core/stencil.cpp` (relative to this directory) as the starting point for both variants — it already uses `posix_memalign`.
 2. In `stencil_naive.cpp`, replace the parallel init loop with a plain serial one.
-3. In `stencil_ft.cpp`, keep (or add) `#pragma omp parallel for` over the init loops, with the **same iteration order** as the compute step. This is the whole point — traversal order at init must match the compute step to get correct page placement.
+3. In `stencil_ft.cpp`, keep `#pragma omp parallel for` over the init loops, with the **same iteration order** as the compute step. This is the whole point — traversal order at init must match the compute step to get correct page placement.
 4. Both must produce the same checksum (correctness gates the delta).
 
 ## What the grader reads
@@ -25,6 +42,6 @@ Both compile to separate binaries. CI runs both at 128 threads on Rome, computes
 
 ## Reading list
 
-- Day 4 slide deck (`slides/day4.qmd`) section "NUMA first-touch on 8-domain EPYC 7742".
+- Day 4 slide deck — "First-touch policy", "First-touch — the `std::vector` trap", "First-touch — `posix_memalign` + parallel init".
 - `docs/rome-inventory.md` — numa-hardware output shows exactly which cores map to which NUMA domain.
-- `snippets/day4/numa_first_touch.cpp` in the lectures repo — a minimal working example.
+- `snippets/day4/numa_first_touch.cpp` in the lectures repo — minimal working example using `posix_memalign`.

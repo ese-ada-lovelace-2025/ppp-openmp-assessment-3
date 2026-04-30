@@ -11,6 +11,12 @@ Two variants, both in this directory:
 
 Both compile to separate binaries.
 
+## Precondition: aligned allocation
+
+Both variants should allocate the stencil arrays with `posix_memalign(p, 64, n*sizeof(double))`. 64-byte alignment is the universal answer on Rome — it covers AVX2's 32-byte vector loads, aligns to cache lines, and doubles as a false-sharing-prevention size. Default `std::vector<double>(N)` gives you only `alignof(double) = 8` *and* value-initialises on the master thread, so it's wrong for both alignment and first-touch reasons.
+
+The `core/stencil.cpp` starter already uses this pattern; copy from there as the starting point for both variants.
+
 ## Why the before/after may be small
 
 Modern compilers (Clang 18, GCC 13) autovectorise simple stencils well without pragmas. The `simd` pragma typically helps by:
